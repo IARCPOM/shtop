@@ -1,0 +1,55 @@
+#!/bin/sh
+#https://github.com/Leo-G/DevopsWiki/wiki/How-Linux-CPU-Usage-Time-and-Percentage-is-calculated
+#https://shellhaters.org/
+
+
+UPTIME(){
+	UPTIME_RAW=$(awk -F '.' '{printf $1}' /proc/uptime)
+	UPTIME=$(printf "%02d:%02d:%02d" "$(($UPTIME_RAW/3600))" "$(($(($UPTIME_RAW/60))%60))" "$(($UPTIME_RAW%60))")
+}
+
+CPU_USAGE(){
+	CPU_USAGE_NEW=$(awk '$1 ~ /^cpu/' /proc/stat | awk 'NR==1')
+	
+	CPU_USAGE_OLD_IDLE=$(printf "$CPU_USAGE_OLD" | awk '{printf $5}')
+	
+	CPU_USAGE_OLD_TOTAL=0
+	for CPU_USAGE_OLD_VALUES in $(printf "$CPU_USAGE_OLD" | awk '{$1=""; printf substr($0,2)}')
+	do
+		CPU_USAGE_OLD_TOTAL=$(($CPU_USAGE_OLD_TOTAL+$CPU_USAGE_OLD_VALUES))
+	done
+	
+	CPU_USAGE_NEW_IDLE=$(printf "$CPU_USAGE_NEW" | awk '{printf $5}')
+	
+	CPU_USAGE_NEW_TOTAL=0
+	for CPU_USAGE_NEW_VALUES in $(printf "$CPU_USAGE_NEW" | awk '{$1=""; printf substr($0,2)}')
+	do
+		CPU_USAGE_NEW_TOTAL=$(($CPU_USAGE_NEW_TOTAL+$CPU_USAGE_NEW_VALUES))
+	done
+	
+	CPU_USAGE=$(printf "%06.2f" "$((10000*$(($(($CPU_USAGE_NEW_TOTAL-$CPU_USAGE_OLD_TOTAL))-$(($CPU_USAGE_NEW_IDLE-$CPU_USAGE_OLD_IDLE))))/$(($CPU_USAGE_NEW_TOTAL-$CPU_USAGE_OLD_TOTAL))))e-2")
+}
+
+REFRESH(){
+	CPU_USAGE_OLD=$CPU_USAGE_NEW
+}
+
+#INITIALIZATION
+clear
+CPU_USAGE_OLD=$(awk '$1 ~ /^cpu/' /proc/stat | awk 'NR==1')
+
+while true
+do
+	#FUNCTIONS_TO_RUN
+	UPTIME
+	CPU_USAGE
+	
+	printf "\e[H"
+	printf "CPU USAGE: $CPU_USAGE\n"
+	printf "UPTIME: $UPTIME\n"
+	
+	sleep 1
+	
+	REFRESH
+	
+done
