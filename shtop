@@ -1,7 +1,4 @@
 #!/bin/sh
-#https://github.com/Leo-G/DevopsWiki/wiki/How-Linux-CPU-Usage-Time-and-Percentage-is-calculated
-#https://shellhaters.org/
-
 
 UPTIME(){
 	UPTIME_RAW=$(awk -F '.' '{printf $1}' /proc/uptime)
