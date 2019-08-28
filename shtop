@@ -27,12 +27,20 @@ CPU_USAGE(){
 	CPU_USAGE=$(printf "%06.2f" "$((10000*$(($(($CPU_USAGE_NEW_TOTAL-$CPU_USAGE_OLD_TOTAL))-$(($CPU_USAGE_NEW_IDLE-$CPU_USAGE_OLD_IDLE))))/$(($CPU_USAGE_NEW_TOTAL-$CPU_USAGE_OLD_TOTAL))))e-2")
 }
 
+MEMORY_INFO(){
+	MEMORY_INFO_RAW=$(awk '$1 ~ /^Mem/' /proc/meminfo)
+	
+	MEMORY_INFO_TOTAL=$(printf "$MEMORY_INFO_RAW" | awk '$1 ~ /^MemTotal/' | awk '{ printf $2 }')
+	MEMORY_INFO_FREE=$(printf "$MEMORY_INFO_RAW" | awk '$1 ~ /^MemFree/' | awk '{ printf $2 }')
+	MEMORY_INFO_USED=$(printf "%d" "$(($MEMORY_INFO_TOTAL-$MEMORY_INFO_FREE))")
+}
+
 REFRESH(){
 	CPU_USAGE_OLD=$CPU_USAGE_NEW
 }
 
 #INITIALIZATION
-clear
+clear -x
 CPU_USAGE_OLD=$(awk '$1 ~ /^cpu/' /proc/stat | awk 'NR==1')
 
 while true
@@ -40,12 +48,16 @@ do
 	#FUNCTIONS_TO_RUN
 	UPTIME
 	CPU_USAGE
+	MEMORY_INFO
 	
 	printf "\e[H"
-	printf "CPU USAGE: $CPU_USAGE\n"
-	printf "UPTIME: $UPTIME\n"
+	printf "CPU USAGE         : $CPU_USAGE%%\n"
+	printf "TOTAL MEMORY      : %.2fGB\n" "$((100*$MEMORY_INFO_TOTAL/1048576))e-2"
+	printf "USED  MEMORY      : %.2fGB\n" "$((100*$MEMORY_INFO_USED/1048576))e-2"
+	printf "FREE MEMORY       : %.2fGB\n" "$((100*$MEMORY_INFO_FREE/1048576))e-2"
+	printf "UPTIME            : $UPTIME\n"
 	
-	sleep 1
+	sleep 1.5
 	
 	REFRESH
 	
