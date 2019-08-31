@@ -25,6 +25,8 @@ CPU_USAGE(){
 	done
 	
 	CPU_USAGE=$(printf "%06.2f" "$((10000*$(($(($CPU_USAGE_NEW_TOTAL-$CPU_USAGE_OLD_TOTAL))-$(($CPU_USAGE_NEW_IDLE-$CPU_USAGE_OLD_IDLE))))/$(($CPU_USAGE_NEW_TOTAL-$CPU_USAGE_OLD_TOTAL))))e-2")
+	
+	CPU_USAGE_OLD=$CPU_USAGE_NEW
 }
 
 MEMORY_INFO(){
@@ -35,13 +37,27 @@ MEMORY_INFO(){
 	MEMORY_INFO_USED=$(printf "%d" "$(($MEMORY_INFO_TOTAL-$MEMORY_INFO_FREE))")
 }
 
-REFRESH(){
-	CPU_USAGE_OLD=$CPU_USAGE_NEW
+INTERNET_SPEED_METER(){
+	INTERNET_SPEED_METER_TIME_NEW=$(date +%s.%N)
+	INTERNET_SPEED_METER_RECEIVE_NEW=$(awk '$1 ~ /^enp1s0/' /proc/net/dev | awk '{ printf $2 }') #Yours may be diffrent from enp. Do "cat /proc/net/dev"
+	INTERNET_SPEED_METER_TRANSMIT_NEW=$(awk '$1 ~ /^enp1s0/' /proc/net/dev | awk '{ printf $10 }') #Yours may be diffrent from enp. Do "cat /proc/net/dev"
+	
+	INTERNET_SPEED_METER_DOWN=$(awk "BEGIN {print ((${INTERNET_SPEED_METER_RECEIVE_NEW}-${INTERNET_SPEED_METER_RECEIVE_OLD})/(${INTERNET_SPEED_METER_TIME_NEW}-${INTERNET_SPEED_METER_TIME_OLD}))/1024}")
+	INTERNET_SPEED_METER_UP=$(awk "BEGIN {print ((${INTERNET_SPEED_METER_TRANSMIT_NEW}-${INTERNET_SPEED_METER_TRANSMIT_OLD})/(${INTERNET_SPEED_METER_TIME_NEW}-${INTERNET_SPEED_METER_TIME_OLD}))/1024}")
+	
+	INTERNET_SPEED_METER_TIME_OLD=$INTERNET_SPEED_METER_TIME_NEW
+	INTERNET_SPEED_METER_RECEIVE_OLD=$INTERNET_SPEED_METER_RECEIVE_NEW
+	INTERNET_SPEED_METER_TRANSMIT_OLD=$INTERNET_SPEED_METER_TRANSMIT_NEW
 }
 
 #INITIALIZATION
 clear -x
+
 CPU_USAGE_OLD=$(awk '$1 ~ /^cpu/' /proc/stat | awk 'NR==1')
+
+INTERNET_SPEED_METER_TIME_OLD=$(date +%s.%N)
+INTERNET_SPEED_METER_RECEIVE_OLD=$(awk '$1 ~ /^enp1s0/' /proc/net/dev | awk '{ printf $2 }') #Yours may be diffrent from enp. Do "cat /proc/net/dev"
+INTERNET_SPEED_METER_TRANSMIT_OLD=$(awk '$1 ~ /^enp1s0/' /proc/net/dev | awk '{ printf $10 }') #Yours may be diffrent from enp. Do "cat /proc/net/dev"
 
 while true
 do
@@ -49,16 +65,17 @@ do
 	UPTIME
 	CPU_USAGE
 	MEMORY_INFO
+	INTERNET_SPEED_METER
 	
 	printf "\e[H"
-	printf "CPU USAGE         : $CPU_USAGE%%\n"
-	printf "TOTAL MEMORY      : %.2fGB\n" "$((100*$MEMORY_INFO_TOTAL/1048576))e-2"
-	printf "USED  MEMORY      : %.2fGB\n" "$((100*$MEMORY_INFO_USED/1048576))e-2"
-	printf "FREE MEMORY       : %.2fGB\n" "$((100*$MEMORY_INFO_FREE/1048576))e-2"
-	printf "UPTIME            : $UPTIME\n"
+	printf "\e[2KCPU USAGE         : $CPU_USAGE%%\n"
+	printf "\e[2KTOTAL MEMORY      : %.2fGB\n" "$((100*$MEMORY_INFO_TOTAL/1048576))e-2"
+	printf "\e[2KUSED  MEMORY      : %.2fGB\n" "$((100*$MEMORY_INFO_USED/1048576))e-2"
+	printf "\e[2KFREE MEMORY       : %.2fGB\n" "$((100*$MEMORY_INFO_FREE/1048576))e-2"
+	printf "\e[2KUPTIME            : $UPTIME\n"
+	printf "\e[2KINTERNET SPEED    : D %f KB/s | U %f KB/s" "$INTERNET_SPEED_METER_DOWN" "$INTERNET_SPEED_METER_UP"
 	
 	sleep 1.5
 	
-	REFRESH
 	
 done
