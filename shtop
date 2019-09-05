@@ -50,8 +50,11 @@ INTERNET_SPEED_METER(){
 	INTERNET_SPEED_METER_TRANSMIT_OLD=$INTERNET_SPEED_METER_TRANSMIT_NEW
 }
 
+PROCESSES_SNAPSHOT(){
+	PROCESSES_SNAPSHOT="$(ps -Ao pid,user,pcpu,%mem,time,command --sort=-pcpu --cols $(tput cols) | head -n $(($(tput lines)-6)))"
+}
+
 #INITIALIZATION
-clear -x
 
 CPU_USAGE_OLD=$(awk '$1 ~ /^cpu/' /proc/stat | awk 'NR==1')
 
@@ -66,14 +69,20 @@ do
 	CPU_USAGE
 	MEMORY_INFO
 	INTERNET_SPEED_METER
+	PROCESSES_SNAPSHOT
 	
-	printf "\e[H"
+	clear
 	printf "\e[2KCPU USAGE         : $CPU_USAGE%%\n"
 	printf "\e[2KTOTAL MEMORY      : %.2fGB\n" "$((100*$MEMORY_INFO_TOTAL/1048576))e-2"
 	printf "\e[2KUSED  MEMORY      : %.2fGB\n" "$((100*$MEMORY_INFO_USED/1048576))e-2"
 	printf "\e[2KFREE MEMORY       : %.2fGB\n" "$((100*$MEMORY_INFO_FREE/1048576))e-2"
 	printf "\e[2KUPTIME            : $UPTIME\n"
-	printf "\e[2KINTERNET SPEED    : D %f KB/s | U %f KB/s" "$INTERNET_SPEED_METER_DOWN" "$INTERNET_SPEED_METER_UP"
+	printf "\e[2KINTERNET SPEED    : D %.2f KB/s | U %.2f KB/s | T %.2f KB/s\n" "$INTERNET_SPEED_METER_DOWN" "$INTERNET_SPEED_METER_UP" "$(awk "BEGIN {print ${INTERNET_SPEED_METER_DOWN}+${INTERNET_SPEED_METER_UP}}")"
+	
+	
+	printf "\e[2K%s" "$PROCESSES_SNAPSHOT"
+	
+	printf "\e[%d;%dH " "$(tput lines)" "$(tput cols)"
 	
 	sleep 1.5
 	
